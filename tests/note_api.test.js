@@ -2,8 +2,10 @@ const { test, after, beforeEach, describe } = require('node:test')
 const assert = require('node:assert')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
+const bcrypt = require('bcrypt')
 const app = require('../app')
 const Note = require('../models/note')
+const User = require('../models/user')
 const helper = require('./test_helper')
 
 const api = supertest(app)
@@ -55,10 +57,19 @@ describe('when there are some notes saved initially', () => {
   })
 
   describe('addition of a new note', () => {
+    beforeEach(async () => {
+      await User.deleteMany({})
+      const passwordHash = await bcrypt.hash('sekret', 10)
+      const user = new User({ username: 'root', passwordHash })
+      await user.save()
+    })
+
     test('succeeds with valid data', async () => {
+      const users = await helper.usersInDb()
       const newNote = {
         content: 'async/await simplifies making async calls',
-        important: true
+        important: true,
+        userId: users[0].id
       }
       await api.post('/api/notes')
         .send(newNote)
@@ -71,8 +82,10 @@ describe('when there are some notes saved initially', () => {
     })
 
     test('fails with status code 400 if data is invalid', async () => {
+      const users = await helper.usersInDb()
       const newNote = {
-        important: true
+        important: true,
+        userId: users[0].id
       }
       await api.post('/api/notes')
         .send(newNote)
