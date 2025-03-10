@@ -65,14 +65,15 @@ describe('when there are some notes saved initially', () => {
     })
 
     test('succeeds with valid data', async () => {
-      const users = await helper.usersInDb()
+      const tokenResponse = await api.post('/api/login')
+        .send({ username: 'root', password: 'sekret' })
       const newNote = {
         content: 'async/await simplifies making async calls',
-        important: true,
-        userId: users[0].id
+        important: true
       }
       await api.post('/api/notes')
         .send(newNote)
+        .set('Authorization', `Bearer ${tokenResponse.body.token}`)
         .expect(201)
         .expect('Content-Type', /application\/json/)
       const notesAtEnd = await helper.notesInDb()
@@ -82,13 +83,14 @@ describe('when there are some notes saved initially', () => {
     })
 
     test('fails with status code 400 if data is invalid', async () => {
-      const users = await helper.usersInDb()
+      const tokenResponse = await api.post('/api/login')
+        .send({ username: 'root', password: 'sekret' })
       const newNote = {
-        important: true,
-        userId: users[0].id
+        important: true
       }
       await api.post('/api/notes')
         .send(newNote)
+        .set('Authorization', `Bearer ${tokenResponse.body.token}`)
         .expect(400)
       const notesAtEnd = await helper.notesInDb()
       assert.strictEqual(notesAtEnd.length, helper.initialNotes.length)
